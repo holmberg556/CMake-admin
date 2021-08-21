@@ -31,6 +31,9 @@ def parse_arguments():
     add('--portrait', action='store_true',
         help='dot orientation')
 
+    add('--relative-to', action='store', default=os.getcwd(),
+        help='show paths relative to DIR')
+
     add('--avoid-subdir', action='append', default=[],
         help='avoid subdir(s)')
     add('--mix-macro-function', action='store_true',
@@ -127,7 +130,7 @@ def main(opts):
         return d[f[0]]
     def label(f):
         if f[0] == 'add_subdirectory':
-            return os.path.relpath(f[1])
+            return os.path.relpath(f[1], opts.relative_to).replace('\\', '/')
         else:
             return f[1]
 
