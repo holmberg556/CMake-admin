@@ -33,6 +33,12 @@ def parse_arguments():
 
     add('--avoid-subdir', action='append', default=[],
         help='avoid subdir(s)')
+    add('--mix-macro-function', action='store_true',
+        help='make no distinction macros/functions')
+    add('--no-dirs', action='store_true',
+        help='do not show directories')
+    add('--one-dir', action='store_true',
+        help='present all directories as ONE')
 
     add('-s', '--select', action='append', default=[],
         help='selected functions/macros')
@@ -66,22 +72,31 @@ def calls(trace):
 
 #----------------------------------------------------------------------
 
-def quotient_graph(g):
+def quotient_graph(g, opts):
     def kind(s):
         if ';add_subdirectory' in s:
             return 'subdir'
+        elif opts.mix_macro_function:
+            return 'function or macro'
         elif ';function' in s:
             return 'function'
         else:
             return 'macro'
     def equiv(s1, s2):
-        return ( kind(s1) == kind(s2) and
-                 sorted(g.predecessors(s1)) == sorted(g.predecessors(s2)) and
-                 sorted(g.successors(s1)) == sorted(g.successors(s2)) )
+        if opts.one_dir and kind(s1) == 'subdir' and kind(s2) == 'subdir':
+            return True
+        else:
+            return ( kind(s1) == kind(s2) and
+                     sorted(g.predecessors(s1)) == sorted(g.predecessors(s2)) and
+                     sorted(g.successors(s1)) == sorted(g.successors(s2)) )
 
-    def quotient_shape(x):
-        x = list(x)
-        return g.nodes[x[0]]['shape']
+    def quotient_shape(xs):
+        xs = list(xs)
+        shapes = set(g.nodes[x]['shape'] for x in xs)
+        if len(shapes) == 1:
+            return shapes.pop()
+        else:
+            return 'hexagon'
 
     group_g = nx.quotient_graph(g, equiv, edge_data=lambda x,y: {}, node_data=lambda x: { 'shape' : quotient_shape(x) })
 
@@ -96,32 +111,12 @@ def get_trace(opts):
     with open(trace_file) as f:
         trace = json.load(f)
     return [tuple(x) for x in trace]
-    
-#----------------------------------------------------------------------
-# Functions & macros part of CMake itself ==> uninteresting.
-#
-
-def avoid_fun_byname(name):
-    if name.upper() == name:
-        return True
-
-    prefixes = ['*', '_GNU', '_qt5', 'cmake_', '_has_compiler', '_check_function', '__', '_cmake', 'compiler_id_detection']
-
-    if any(name.startswith(x) for x in prefixes):
-        return True
-
-    return False
 
 #----------------------------------------------------------------------
 
 def main(opts):
     trace = get_trace(opts)
-    
-    def avoid(f):
-        if f[0] == 'add_subdirectory':
-            return any((x in f[1]) for x in opts.avoid_subdir)
-        else:
-            return avoid_fun_byname(f[1])
+
     def show(f):
         if f[0] == 'add_subdirectory':
             return  ';'.join((label(f), f[0]))
@@ -143,20 +138,36 @@ def main(opts):
 
     for call in calls(trace):
         f1, f2 = call
-        if call in seen:
-            continue
         seen.add(call)
-        if avoid(f1) or avoid(f2):
-            continue
-        if f1[1] in selected or f2[1] in selected or len(selected) == 0:
-            s1, s2 = show(f1), show(f2)
-            if opts.verbose:
-                print(f'{s1}\t{s2}')
-            g.add_node(s1, shape=shape(f1), label=label(f1))
-            g.add_node(s2, shape=shape(f2), label=label(f2))
-            g.add_edge(s1, s2)
+        s1, s2 = show(f1), show(f2)
+        g.add_node(s1, shape=shape(f1), label=label(f1))
+        g.add_node(s2, shape=shape(f2), label=label(f2))
+        g.add_edge(s1, s2)
+        if opts.verbose:
+            print(f'{s1}\t{s2}')
 
-    g = quotient_graph(g)
+    def prune(node):
+        xs = nx.descendants(g, node)
+        g.remove_nodes_from(xs)
+        g.remove_node(node)
+
+    def interesting(x):
+        prefixes = ['CMAKE_', 'cmake_', '_cmake', '__', '*']
+        if any(x.startswith(p) for p in prefixes):
+            return False
+        return True
+
+    if opts.no_dirs:
+        for node in list(g.nodes):
+            if ';add_subdirectory' in node:
+                g.remove_node(node)
+
+    to_remove = [x  for x in g.nodes if not interesting(x)]
+    for node in to_remove:
+        if node in g:
+            prune(node)
+
+    g = quotient_graph(g, opts)
 
     g.graph['graph'] = {
         'rankdir' : opts.rankdir,
@@ -165,7 +176,7 @@ def main(opts):
     }
     write_dot(g, 'tmp.dot')
     run('dot -Tpdf tmp.dot -o tmp.pdf', shell=True, check=True)
-    
+
 #----------------------------------------------------------------------
 
 if __name__ == '__main__':
