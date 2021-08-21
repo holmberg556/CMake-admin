@@ -1,0 +1,7 @@
+*~
+tmp.*
+cmake.trace.json
+cmake.files.tree
+cmake.functions.tree
+cmake.tree
+build/
