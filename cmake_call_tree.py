@@ -152,7 +152,7 @@ def main(opts):
         g.remove_node(node)
 
     def interesting(x):
-        prefixes = ['CMAKE_', 'cmake_', '_cmake', '__', '*']
+        prefixes = ['CMAKE_', 'cmake_', '_cmake', '__', '*', 'FIND_PACKAGE_']
         if any(x.startswith(p) for p in prefixes):
             return False
         return True
