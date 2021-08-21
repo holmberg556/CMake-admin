@@ -38,3 +38,9 @@ endmacro()
 
 
 call_fun_and_macro()
+
+function(simple_fun)
+  message(STATUS "This is simple_fun")
+endfunction()
+
+simple_fun()
