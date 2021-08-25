@@ -39,7 +39,7 @@ It records these "events" when running CMake:
 
 - entering/leaving a macro
 
-From this information a "call graph" can be constructed (e.g. by a Python script).
+From this information a `call_tree.pdf <examples/simple1/call_tree.pdf>`_ can be constructed (e.g. by a Python script).
 A simple "ascii tree" is produced directly by the patched CMake::
 
   /tmp/simple1/src/functions.cmake
