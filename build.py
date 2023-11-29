@@ -18,6 +18,7 @@ def parse_arguments():
 
     add('-q', '--quiet', action='store_true', help='be more quiet')
     add('-n', '--dry-run', action='store_true', help='dry run')
+    add('--use-existing-cmake-dir', action='store_true', help='accept existing directory CMake')
     add('--ssh', action='store_true', help='use ssh')
     add('branch', help='branch to build')
     return parser.parse_args()
@@ -39,7 +40,16 @@ def main(opts):
 
     srcdir = Path.cwd().parent.joinpath('CMake')
 
-    sh(f'git clone -b {opts.branch} {url} {srcdir}')
+    if os.path.isdir(srcdir):
+        if opts.use_existing_cmake_dir:
+            print(f'### ERROR: using existing dir: {srcdir}')
+        else:
+            print(f'--- ERROR: directory already exist: {srcdir}')
+            print(f'--- ERROR: use --use-existing-cmake-dir to continue')
+            sys.exit(1)
+    else:
+        sh(f'git clone -b {opts.branch} {url} {srcdir}')
+
     if WINDOWS:
         sh(f'cmake -DCPACK_BINARY_NSIS:BOOL=FALSE -DCPACK_BINARY_ZIP:BOOL=TRUE -DCMAKE_INSTALL_PREFIX={srcdir}.install -B {srcdir}.build {srcdir}')
     else:
