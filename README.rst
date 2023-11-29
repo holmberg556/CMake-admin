@@ -58,16 +58,35 @@ Building this patched CMake
 
   git clone https://github.com/holmberg556/CMake-admin.git
   cd CMake-admin
-  python3 build.py call-tree--v3.21.1
+  python3 build.py call-tree--v3.26.3
 
 If you want to see which commands would be executed, you can "dry-run" first::
 
-  python3 build.py -n call-tree--v3.21.1
+  python3 build.py -n call-tree--v3.26.3
 
-This should produce the following files (example on macOS)::
+This should produce something like the following files (example on macOS)::
 
   $ ls -1 ../CMake.build
   ../CMake.build/cmake-3.21.1-g1aa8953-Darwin-x86_64.sh
   ../CMake.build/cmake-3.21.1-g1aa8953-Darwin-x86_64.tar.gz
 
 There should also be a fully functional CMake installed in the directory ``../CMake.install``.
+
+Update fork for new CMake release
+---------------------------------
+
+First "Sync fork" in the Github web interface.
+Then do this to transfer tags too::
+
+  git clone git@github.com:holmberg556/CMake.git
+  cd CMake
+  git remote add upstream https://gitlab.kitware.com/cmake/cmake
+  git fetch upstream
+  git push --tags origin
+
+Now it is time to rebase our branch::
+
+  git checkout call-tree--v3.25.2         # previous branch
+  git checkout -b call-tree--v3.26.3      # the new branch, starting at same place
+  git rebase git rebase v3.26.3           # rebase on new release
+  git push
