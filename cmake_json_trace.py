@@ -25,7 +25,7 @@ add_subdirectory / include / function calls in a CMake invocation.
 Example use:
 
     # specify existing build tree
-    cmake_json_trace.py build_dir
+    cmake_json_trace.py --files build_dir
 
     # give a JSON trace file from earlier run of CMake
     cmake --trace --trace-format=json-v1 build_dir 2> cmake.json.trace
